@@ -10,7 +10,17 @@
 
 <body>
     <div id="app">
-        <div>{{ message }} And {{ ts.b }}</div>
+        {{ message.index }}
+        <div>{{ message.index }}</div>
+        <button @click="test('23333','23233')">Change</button>
+        <input type="text" #value="message.index" #show="show" />
+        <textarea #value="index"></textarea>
+        <input type="checkbox" #value="show" />
+        <select #value="index">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+        </select>
     </div>
 </body>
 
@@ -20,14 +30,26 @@
         {
             el: "#app",
             data: {
-                message: "Hello World",
-                name: "Yu.js",
-                ts: {
-                    a: 1
+                message: {
+                    index: 1,
+                    show: true
+                },
+                show: true,
+                no: "23333",
+                index: 1
+            },
+            methods: {
+                test(one, two) {
+                    this.message.index = one;
+                    this.show = !this.show
+                    this.index = this.index % 3 + 1
                 }
+            },
+            mounted() {
+                console.log("mounted")
             }
         }
-    );
+    )
 </script>
 
 </html>
