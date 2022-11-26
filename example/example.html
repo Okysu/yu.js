@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yu.js</title>
+    <style type="text/css">
+        #app {
+            text-align: center;
+        }
+
+        table,
+        td {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        #app div {
+            text-align: left;
+            width: 300px;
+            color: red
+        }
+
+        .text1 {
+            border-radius: 8px;
+            width: 200px;
+            height: 25px;
+        }
+
+        .button {
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h2 align="center">用户注册信息</h2>
+        <div>
+            {{ data }}
+        </div>
+        <hr>
+        <form id="test" align="left" @submit="validate()">
+            <table>
+                <tr>
+                    <td>用户名*:</td>
+                    <td><input type="text" class="text1" id="username" placeholder="用户名由6-10位字母和数字组成，至少包含1个字母和1个数字"
+                            size="20" required #value="data.username" @change="nameerror()" autocomplete="off"></td>
+                    <td>
+                        <div name="nameerror" id="nameerror"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>年龄*:</td>
+                    <td><input type="text" class="text1" id="age" placeholder="年龄不能小于17岁" size="20" required
+                            #value="data.age" @change="ageerror()" autocomplete="off">
+                    </td>
+                    <td>
+                        <div id="ageerror"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>密码*:</td>
+                    <td><input type="password" class="text1" id="password1"
+                            placeholder="密码由6-10位字符组成，至少包含1个字母、1个数字和一个特殊符号" size="20" required #value="data.password1"
+                            @change="password1error()">
+                    </td>
+                    <td>
+                        <div id="password1error"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>确认密码*:</td>
+                    <td><input type="password" class="text1" id="password2" placeholder="两次密码必须相同" size="20" required
+                            #value="data.password2" @change="password2error()"></td>
+                    <td>
+                        <div id="password2error">
+                    </td>
+                </tr>
+                <tr>
+                    <td>电子邮件*:</td>
+                    <td><input type="text" class="text1" id="email" placeholder="邮箱地址包含@字符" size="20" required
+                            #value="data.email" @change="emailerror()">
+                    <td>
+                        <div id="emailerror">
+                    </td>
+                    </td>
+                </tr>
+                <tr>
+                    <td>电话:</td>
+                    <td><input type="text" class="text1" id="number1" size="20"></td>
+                </tr>
+                <tr>
+                    <td>QQ号码:</td>
+                    <td><input type="text" class="text1" id="number2" size="20"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td><input type="submit" class="button" value="提交" @click="validate()">
+                        <input type="reset" class="button" value="重置">
+                    </td>
+                </tr>
+            </table>
+        </form>
+        </hr>
+    </div>
+</body>
+
+<script type="module">
+    import { Yu, $ } from "./dev.js";
+    const app = new Yu(
+        {
+            dev: false,
+            el: "#app",
+            data: {
+                data: {
+                    username: "",
+                    age: "",
+                    password1: "",
+                    password2: "",
+                    email: "",
+                },
+                checked: {
+                    name: false,
+                    age: false,
+                    password1: false,
+                    password2: false,
+                    email: false,
+                }
+            },
+            methods: {
+                nameerror() {
+                    let name = this.data.username;
+                    let nameerror = $("#nameerror");
+                    let reg = /^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,10}$/;
+                    if (reg.test(name)) {
+                        nameerror.innerHTML = "";
+                        this.checked.name = true;
+                    } else {
+                        nameerror.innerHTML = "用户名格式错误";
+                        this.checked.name = false;
+                    }
+                    console.log(name);
+                },
+                ageerror() {
+                    let age = this.data.age;
+                    let ageerror = $("#ageerror");
+                    if (age >= 17) {
+                        ageerror.innerHTML = "";
+                        this.checked.age = true;
+                    } else {
+                        ageerror.innerHTML = "年龄不能小于17岁";
+                        this.checked.age = false;
+                    }
+                },
+                password1error() {
+                    let password1 = this.data.password1;
+                    let password1error = $("#password1error");
+                    let reg = /^[a-zA-Z0-9!@#$%^&*]{6,10}$/;
+                    if (reg.test(password1)) {
+                        password1error.innerHTML = "";
+                        this.checked.password1 = true;
+                    } else {
+                        password1error.innerHTML = "密码格式错误";
+                        this.checked.password1 = false;
+                    }
+                },
+                password2error() {
+                    let password1 = this.data.password1;
+                    let password2 = this.data.password2;
+                    let password2error = $("#password2error");
+                    if (password1 == password2) {
+                        password2error.innerHTML = "";
+                        this.checked.password2 = true;
+                    } else {
+                        password2error.innerHTML = "两次密码不一致";
+                        this.checked.password2 = false;
+                    }
+                },
+                emailerror() {
+                    let email = this.data.email;
+                    let emailerror = $("#emailerror");
+                    let reg = /^(\w-*\.*)+@(\w-?)+(\.\w{2,})+$/;
+                    if (reg.test(email)) {
+                        emailerror.innerHTML = "";
+                        this.checked.email = true;
+                    } else {
+                        emailerror.innerHTML = "邮箱格式错误";
+                        this.checked.email = false;
+                    }
+                },
+                validate() {
+                    let checked = this.checked;
+                    if (checked.name && checked.age && checked.password1 && checked.password2 && checked.email) {
+                        alert("提交成功");
+                    } else {
+                        alert("提交失败");
+                    }
+                }
+            },
+            mounted() {
+                console.log("mounted")
+            }
+        }
+    )
+</script>
+
+</html>
