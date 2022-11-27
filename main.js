@@ -9,10 +9,8 @@
 export class Yu {
 
     #local = {
-        options: null,
         data: null,
         methods: null,
-        computed: null,
         mounted: null,
         watch: null,
         el: null,
@@ -22,32 +20,42 @@ export class Yu {
         oldNode: null,
         newNode: null,
         dev: false,
+        strict: false,
     }
 
     constructor(options) {
-        if (!options) throw new Error('\n[Yu.JS] No options provided.')
+        if (!options) throw new YuError('No options provided.')
         this.#local = {
-            dev: options.dev || false,
-            data: options.data,
-            methods: options.methods,
-            computed: options.computed,
-            watch: options.watch,
+            dev: options?.dev || false,
+            strict: options?.strict || false,
+            data: options?.data,
+            methods: options?.methods,
+            watch: options?.watch,
             el: this.#elGet(options.el),
             node: this.#nodeGet(options.el),
             template: this.#templateGet(options.el),
-            components: options.components,
-            mounted: options.mounted,
+            components: options?.components,
+            mounted: options?.mounted,
         }
         this.#local.oldNode = this.#local.node.cloneNode(true)
         this.$global = {
-            $yu: {
-                instance: this,
-                version: '0.0.1',
-                app: this.#local.node,
-            }
+            instance: this,
+            version: '0.0.1',
+            app: this.#local.el,
+            dev(isDev = null) {
+                if (isDev !== null)
+                    this.instance.#local.dev = isDev
+                else
+                    return this.instance.#local.dev
+            },
+            strict(isStrict = null) {
+                if (isStrict !== null)
+                    this.instance.#local.strict = isStrict
+                else
+                    return this.instance.#local.strict
+            },
         }
-        window.$global = this.$global
-        this.$global = this.$global.$yu
+        window.$yu = this.$global
         if (this.#local.dev)
             console.info(`[Yu.JS] Yu.js::${this.$global.version} is running.`)
         this.#render()
@@ -59,7 +67,7 @@ export class Yu {
      * @returns {string} 没有#或者.的默认为ID
      */
     #elGet(optionsEl) {
-        if (!optionsEl) throw new Error('\n[Yu.JS] No element provided.')
+        if (!optionsEl) throw new YuError('No element provided.')
         if (!optionsEl.startsWith('#') && !optionsEl.startsWith('.')) {
             optionsEl = '#' + optionsEl
         }
@@ -79,7 +87,7 @@ export class Yu {
             return document.querySelector(optionsEl)
         }
         catch (e) {
-            throw new Error('\n[Yu.JS] No element found.\n[Origin] ' + e)
+            throw new YuError('No element found.')
         }
     }
 
@@ -96,7 +104,7 @@ export class Yu {
             return document.querySelector(optionsEl).innerHTML
         }
         catch (e) {
-            throw new Error('\n[Yu.JS] No element found.\n[Origin] ' + e)
+            throw new YuError('No element found.')
         }
     }
 
@@ -164,8 +172,17 @@ export class Yu {
                     }
                 })
                 if (flag)
-                    if (value !== '')
+                    if (value !== '') {
+                        if (typeof value === 'object') {
+                            try {
+                                value = JSON.stringify(value)
+                            }
+                            catch (e) {
+                                console.warn(`[Yu.JS] Cannot stringify '${itemStr}' in data.`)
+                            }
+                        }
                         templateStr = templateStr.replace(item, `#value=${itemStr} value="${value}"`)
+                    }
             })
         }
 
@@ -177,8 +194,10 @@ export class Yu {
      */
     #render() {
         let renderTime = new Date().getTime()
+        this.#methodsCompile()
+        this.#watchCompile()
         this.#deepProxy()
-        this.#proxyDataToMethods()
+        this.#proxyData()
         let template = this.#templateCompile(this.#local.template)
         this.#local.node.innerHTML = template
         this.#local.oldNode.innerHTML = template
@@ -190,7 +209,35 @@ export class Yu {
         this.#mounted()
     }
 
-    //进行对data的深度代理，监听多级属性的变化
+    /**
+     * watch函数更名
+     */
+    #watchCompile() {
+        let watch = this.#local.watch
+        if (watch) {
+            for (let key in watch) {
+                this.#local.watch[`_watch_${key}`] = watch[key]
+                delete this.#local.watch[key]
+            }
+        }
+    }
+
+    /**
+     * methods函数更名
+     */
+    #methodsCompile() {
+        let methods = this.#local.methods
+        if (methods) {
+            for (let key in methods) {
+                this.#local.methods[`_methods_${key}`] = methods[key]
+                delete this.#local.methods[key]
+            }
+        }
+    }
+
+    /**
+     * 深度代理
+     */
     #deepProxy() {
         let that = this
         let data = this.#local.data
@@ -199,15 +246,26 @@ export class Yu {
                 return Reflect.get(target, key)
             },
             set(target, key, value) {
-                if (that.#local.dev)
-                    console.info(`[Yu.JS] Data changed: ${key} = ${value}`)
                 let oldVal = target[key]
                 let newVal = value
                 if (oldVal === newVal) {
                     return true
                 }
+                if (typeof newVal === 'object') {
+                    newVal = new Proxy(newVal, handler)
+                }
                 Reflect.set(target, key, newVal)
                 that.#update()
+                if (that.#local.dev)
+                    console.info(`[Yu.JS] Data changed: ${key} = ${value}`)
+                if (that.#local.watch && that.#local.watch[`_watch_${key}`]) {
+                    if (typeof that.#local?.watch[`_watch_${key}`] === 'function')
+                        that.#local.watch[`_watch_${key}`].call(that, newVal, oldVal, target)
+                    else if (typeof that.#local?.watch[`_watch_${key}`] === 'object') {
+                        if (that.#local.watch[`_watch_${key}`].handler)
+                            that.#local.watch[`_watch_${key}`].handler.call(that, newVal, oldVal, target[key])
+                    }
+                }
                 return true
             }
         }
@@ -223,11 +281,6 @@ export class Yu {
             }
         }
     }
-
-
-
-
-
 
     /**
      * diff 局部更新
@@ -285,8 +338,6 @@ export class Yu {
         }
     }
 
-
-
     /**
      * 数据更新后的视图刷新
      */
@@ -302,20 +353,58 @@ export class Yu {
     }
 
     /**
-     * 将data中的数据代理到methods中
+     * Proxy data 到 methods和watch
      */
-    #proxyDataToMethods() {
-        let that = this
-        Object.keys(this.#local.data).forEach(key => {
-            Object.defineProperty(this.#local.methods, key, {
-                get() {
-                    return that.#local.data[key]
+    #proxyData() {
+        let data = this.#local.data
+        let methods = this.#local.methods
+        let watch = this.#local.watch
+        if (methods)
+            methods = new Proxy(methods, {
+                get(target, key) {
+                    if (key.startsWith('_methods_')) {
+                        return Reflect.get(target, key)
+                    } else {
+                        if (key in data) {
+                            return data[key]
+                        }
+                    }
                 },
-                set(newVal) {
-                    that.#local.data[key] = newVal
+                set(target, key, value) {
+                    if (key.startsWith('_methods_')) {
+                        return Reflect.set(target, key, value)
+                    } else {
+                        if (key in data) {
+                            data[key] = value
+                            return true
+                        }
+                    }
                 }
             })
-        })
+        if (watch)
+            watch = new Proxy(watch, {
+                get(target, key) {
+                    if (key.startsWith('_watch_')) {
+                        return Reflect.get(target, key)
+                    } else {
+                        if (key in data) {
+                            return data[key]
+                        }
+                    }
+                },
+                set(target, key, value) {
+                    if (key.startsWith('_watch_')) {
+                        return Reflect.set(target, key, value)
+                    } else {
+                        if (key in data) {
+                            data[key] = value
+                            return true
+                        }
+                    }
+                }
+            })
+        this.#local.methods = methods
+        this.#local.watch = watch
     }
 
     /**
@@ -370,8 +459,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -379,8 +468,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -394,8 +483,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -403,8 +492,32 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
+                        else
+                            console.error(`[Yu.JS] ${key} is not a function.`)
+                    }
+                })
+            }
+            if (child.hasAttribute('@reset')) {
+                child.addEventListener('reset', e => {
+                    e.preventDefault()
+                    let target = e.target
+                    let attr = target.getAttribute('@reset')
+                    let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
+                    let reg = new RegExp(`${key}\\((.+?)\\)`)
+                    if (attr === key || attr === `${key}()`) {
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
+                        else
+                            console.error(`[Yu.JS] ${key} is not a function.`)
+                    } else if (reg.test(attr)) {
+                        let params = attr.match(reg)[1].split(',')
+                        params = params.map(param => {
+                            return param.replace(/\'|\"/g, '')
+                        })
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -417,9 +530,9 @@ export class Yu {
             if (value) {
                 let keys = value.split('.')
                 let data = this.#local.data
-                for (let i = 0; i < keys.length; i++) {
-                    data = data[keys[i]]
-                }
+                keys.forEach(key => {
+                    data = data[key]
+                })
                 input.value = data
                 if (input.type === 'checkbox' || input.type === 'radio') {
                     input.checked = data
@@ -454,8 +567,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -463,8 +576,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -477,8 +590,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -486,8 +599,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -500,8 +613,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -509,8 +622,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -546,8 +659,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -555,8 +668,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -569,8 +682,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -578,8 +691,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -592,8 +705,8 @@ export class Yu {
                     let key = attr.indexOf('(') > -1 ? attr.slice(0, attr.indexOf('(')) : attr
                     let reg = new RegExp(`${key}\\((.+?)\\)`)
                     if (attr === key || attr === `${key}()`) {
-                        if (this.#local.methods[key])
-                            this.#local.methods[key]()
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`]()
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     } else if (reg.test(attr)) {
@@ -601,8 +714,8 @@ export class Yu {
                         params = params.map(param => {
                             return param.replace(/\'|\"/g, '')
                         })
-                        if (this.#local.methods[key])
-                            this.#local.methods[key](...params)
+                        if (this.#local.methods[`_methods_${key}`])
+                            this.#local.methods[`_methods_${key}`](...params)
                         else
                             console.error(`[Yu.JS] ${key} is not a function.`)
                     }
@@ -619,7 +732,101 @@ export class Yu {
             this.#local.mounted()
     }
 }
-
+/**
+ * 
+ * @param {string} selector 
+ * @returns {Element} 
+ */
 export const $ = (selector) => {
     return document.querySelector(selector)
 }
+/**
+ * h渲染
+ * @param {string | object} tag 
+ * @param {object} props 
+ * @param {string | object} children 
+ * @returns {VNode} 
+ */
+export const h = (tag, props, children) => {
+    return new VNode(tag, props, children)
+}
+
+class VNode {
+    constructor(tag, props, children) {
+        this.tag = tag
+        this.props = props
+        this.children = children
+    }
+
+    render() {
+        let el = document.createElement(this.tag)
+        for (let key in this.props) {
+            if (key === 'style') {
+                for (let style in this.props[key]) {
+                    let arr
+                    if (/[A-Z]/.test(style)) {
+                        arr = style.replace(/[A-Z]/g, (match) => {
+                            return '-' + match.toLowerCase()
+                        })
+                    }
+                    el.style[arr || style] = this.props[key][style]
+                }
+            } else if (key === 'class') {
+                el.className = this.props[key]
+            } else if (/^on/.test(key)) {
+                el.addEventListener(key.slice(2).toLowerCase().toString(), this.props[key])
+            }
+            else {
+                el.setAttribute(key, this.props[key])
+            }
+        }
+        if (this.children) {
+            if (typeof this.children === 'string') {
+                el.appendChild(document.createTextNode(this.children))
+            }
+            else if (typeof this.children === 'object') {
+                if (this.children instanceof Array) {
+                    this.children.forEach(child => {
+                        el.appendChild(child.render())
+                    })
+                } else {
+                    el.appendChild(this.children.render())
+                }
+            }
+            else if (Array.isArray(this.children)) {
+                this.children.forEach(child => {
+                    render(child, el)
+                })
+            }
+        }
+        return el
+    }
+}
+
+/**
+ * 
+ * @param {HTMLElement} vnode 
+ * @param {Yu} that 
+ */
+export const render = (vnode, that) => {
+    if (!that && window.$yu.dev() && window.$yu.strict() )
+        console.warn('[Yu.JS] render() must have a second parameter, if not use window.$yu.app instead.')
+    let instance = that?.el || window.$yu.app
+    if (!instance.startsWith('#') && !instance.startsWith('.')) {
+        instance = '#' + instance
+    }
+    let container = document.querySelector(instance)
+    container.appendChild(vnode.render())
+}
+
+/**
+ * 自定义错误
+ */
+export class YuError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = '[Yu.JS]'
+    }
+}
+
+export default Yu

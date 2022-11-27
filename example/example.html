@@ -42,7 +42,7 @@
             {{ data }}
         </div>
         <hr>
-        <form id="test" align="left" @submit="validate()">
+        <form id="test" align="center" @submit="validate()" @reset="reset()">
             <table>
                 <tr>
                     <td>用户名*:</td>
@@ -98,7 +98,8 @@
                 </tr>
                 <tr>
                     <td></td>
-                    <td><input type="submit" class="button" value="提交" @click="validate()">
+                    <td>
+                        <input type="submit" class="button" value="提交">
                         <input type="reset" class="button" value="重置">
                     </td>
                 </tr>
@@ -109,12 +110,13 @@
 </body>
 
 <script type="module">
-    import { Yu, $ } from "./dev.js";
+    import { Yu, $, render, h } from "../main.js";
     const app = new Yu(
         {
-            dev: false,
+            dev: true,
             el: "#app",
             data: {
+                test: "222",
                 data: {
                     username: "",
                     age: "",
@@ -132,6 +134,7 @@
             },
             methods: {
                 nameerror() {
+                    console.log(this.test);
                     let name = this.data.username;
                     let nameerror = $("#nameerror");
                     let reg = /^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,10}$/;
@@ -142,7 +145,6 @@
                         nameerror.innerHTML = "用户名格式错误";
                         this.checked.name = false;
                     }
-                    console.log(name);
                 },
                 ageerror() {
                     let age = this.data.age;
@@ -171,7 +173,7 @@
                     let password1 = this.data.password1;
                     let password2 = this.data.password2;
                     let password2error = $("#password2error");
-                    if (password1 == password2) {
+                    if (password1 == password2 && password1 != "") {
                         password2error.innerHTML = "";
                         this.checked.password2 = true;
                     } else {
@@ -193,15 +195,58 @@
                 },
                 validate() {
                     let checked = this.checked;
+                    //执行验证
+                    this.nameerror();
+                    this.ageerror();
+                    this.password1error();
+                    this.password2error();
+                    this.emailerror();
+                    //判断是否通过验证
                     if (checked.name && checked.age && checked.password1 && checked.password2 && checked.email) {
                         alert("提交成功");
                     } else {
                         alert("提交失败");
                     }
+                },
+                reset() {
+                    this.data = {
+                        username: "123213",
+                        age: "",
+                        password1: "",
+                        password2: "",
+                        email: "",
+                    }
                 }
             },
             mounted() {
                 console.log("mounted")
+                render(
+                    h(
+                        "div",
+                        {
+                            id: "23213",
+                            style: {
+                                color: "red",
+                                fontSize: "20px"
+                            },
+                        },
+                        h(
+                            "button",
+                            {
+                                onclick: () => {
+                                    console.log("click")
+                                    this.data.test = "123123"
+                                },
+                                class: "button",
+                                style: {
+                                    color: "red",
+                                    fontSize: "20px"
+                                }
+                            },
+                            "提交"
+                        )
+                    )
+                )
             }
         }
     )
