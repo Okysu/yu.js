@@ -15,13 +15,30 @@ Yu.js is very suitable for those new Web users. It avoids those complicated DOM 
 
 You can download Yu.js from the [GitHub](https://github.com/Okysu/Yu.js) Or [Website](https://yujs.yby.zone)
 
-### 2. Import Yu.js
+### 2. Import Yu.js(ESM) or Yu.js(UMD)
 
-```javascript
-import { Yu } from "./main.js";
+```html
+<script src="./yu.js"></script>
+```
+You can use the Online CDN
+
+```html
+<script src="https://yujs.yby.zone/yu.js"></script>
 ```
 
+```javascript
+import { Yu } from "./yu.esm.js";
+```
+
+You can use the Online CDN
+
+```javascript
+import { Yu } from "https://yujs.yby.zone/yu.esm.js";
+``` 
+
 ### 3. Create a new Yu.js application
+
+#### 3.1. Create a new Yu.js application with ESM
 
 ```html
 <div id="app">
@@ -48,9 +65,40 @@ const app = new Yu(
 )
 ```
 
+#### 3.2. Create a new Yu.js application with UMD
+
+```html
+<div id="app">
+    <h1>{{title}}</h1>
+    <p>{{content}}</p>
+    <button @click="changeTitle">Change Title</button>
+</div>
+```
+
+Unlike ESM, UMD has a createApp method to create Yu.js instances.
+
+```javascript
+const app = Yu.createApp(
+    {
+        el: "#app",
+        data: {
+            title: "Hello Yu.js",
+            content: "This is a Yu.js application."
+        },
+        methods: {
+            changeTitle() {
+                this.title = "Hello World";
+            }
+        }
+    }
+)
+```
+
 ### 4. Run Yu.js application
 
-Use the `Live Server` for VSCode to run the application.
+if you use ESM to create a Yu.js application and you don't have a server, you can use the [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension for VS Code to run the application.
+
+if you use UMD to create a Yu.js application, you can debug the application in the browser.
 
 ## Documentation
 
