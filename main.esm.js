@@ -354,10 +354,12 @@ export class Yu {
                         let oldAttr = oldAttrs[j]
                         let newAttr = newAttrs[j]
                         if (oldAttr?.name === 'value') {
-                            if (newAttr?.value)
-                                oldChildNode.value = newAttr.value
-                            else
-                                oldChildNode.value = ''
+                            console.log(oldAttr?.value, newAttr?.value)
+                            if (newAttr?.value && oldChildNode.value !== '')
+                                oldChildNode.value = newAttr?.value
+                            else {
+                                oldChildNode.removeAttribute('value')
+                            }
                             if (oldChildNode?.type === 'checkbox' || oldChildNode?.type === 'radio') {
                                 if (newAttr?.value === 'true') {
                                     oldChildNode.checked = true
