@@ -1,6 +1,6 @@
 /**
  * Yu.js - A simple JavaScript framework
- * @version v0.0.3.1
+ * @version v0.0.3.2
  * @link    https://yujs.yby.zone
  * @license GNUAGPLv3
  * @author Okysu
@@ -45,7 +45,7 @@ export class Yu {
         this.#local.oldNode = this.#local.node.cloneNode(true)
         this.$global = {
             instance: this,
-            version: '0.0.3.1',
+            version: '0.0.3.2',
             app: this.#local.el,
             dev(isDev = null) {
                 if (isDev !== null)
@@ -912,6 +912,10 @@ export class YuError extends Error {
 
 export const getCurrentInstance = () => {
     return window.$yu.instance
+}
+
+export const createApp = (app) => {
+    return new Yu(app)
 }
 
 export default Yu

@@ -1,0 +1,17 @@
+{
+    "name": "yu.js",
+    "version": "0.0.3.2",
+    "description": "Yu.js is a JavaScript library for building web applications.",
+    "main": "main.esm.js",
+    "author": {
+        "name": "Okysu",
+        "email": "yby@ecanse.com",
+        "url": "https://yby.zone"
+    },
+    "scripts": {
+        "build": "rollup ./main.esm.js --format iife --file dist/release.js --name Yu"
+    },
+    "devDependencies": {
+        "rollup": "^3.5.0"
+    }
+}

@@ -6,6 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yu.js, A Simple JavaScript Framework.</title>
+    <script src="./dist/release.js"></script>
     <style>
         body {
             background-color: rgb(252, 252, 252);
@@ -86,19 +87,18 @@
         @media screen and (max-width: 600px) {
 
             #app {
-                margin: 30px;
+                margin: 30px auto;
                 margin-top: 100px;
             }
 
         }
 
-        #show{
+        #show {
             display: grid;
             grid-gap: 0px 40px;
         }
 
-        #show > div {
-            width: 100%;
+        #show>div {
             border-radius: 10px;
             padding: 15px;
             margin: 10px;
@@ -106,10 +106,10 @@
             line-height: 1.5;
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            
+
         }
 
-        #show > div:hover{
+        #show>div:hover {
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             transition: all 0.5s;
         }
@@ -176,6 +176,27 @@
         ::-webkit-scrollbar {
             display: none;
         }
+
+        .github-button {
+            display: inline-block;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            border: 1px solid rgba(27, 31, 35, 0.2);
+            border-radius: 6px;
+            background-image: linear-gradient(-180deg, #fafbfc, #eff3f6 90%);
+            margin: 0;
+            cursor: pointer;
+            box-shadow: inset 0 -1px 0 rgba(27, 31, 35, 0.12);
+        }
+
+        .github-button:hover {
+            background-image: linear-gradient(-180deg, #f0f3f6, #e6ebf1 90%);
+            border-color: rgba(27, 31, 35, 0.35);
+            background-position: -0.5em;
+        }
     </style>
 </head>
 
@@ -183,6 +204,10 @@
     <div id="app">
         <h1>{{ text }}</h1>
         <button @click="textUpdate()" class="button"><span>Change the Text</span></button>
+        <div style="margin-top: 20px;">
+            <button class="github-button" @click="goTo('https://github.com/Okysu/yu.js')">Github</button>
+            <button class="github-button" @click="goTo('https://github.com/Okysu/yu.js')">Documentation</button>
+        </div>
         <p>Rendered or Updated in <code>{{ updateTime }}</code>ms</p>
         <div id="show">
             <div>
@@ -230,15 +255,15 @@
                 <br>
                 <input type="text" #value="play.text" #show="play.display">
                 <button @click="showOrhide()">{{ play.button }}</button>
+                <br>
                 <button @click="changeText()">Change the Text</button>
                 <button @click="resetText()">Reset Text</button>
             </div>
         </div>
 </body>
 
-<script type="module">
-    import { Yu } from "./example/dev.js";
-    const app = new Yu(
+<script>
+    Yu.createApp(
         {
             el: "#app",
             data: {
@@ -276,8 +301,11 @@
                 changeText() {
                     this.text = this.play.text;
                 },
-                resetText(){
+                resetText() {
                     this.text = "Hello Yu.js!";
+                },
+                goTo(url) {
+                    window.open(url);
                 }
             },
             mounted() {
