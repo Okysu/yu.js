@@ -9,9 +9,13 @@
         "url": "https://yby.zone"
     },
     "scripts": {
-        "build": "rollup ./main.esm.js --format iife --file dist/release.js --name Yu"
+        "build:js": "uglifyjs ./main.esm.js -o dist/release.esm.js && rollup ./dist/release.esm.js --format iife --file dist/release.js --name Yu",
+        "build:site": "node ./build.js"
     },
     "devDependencies": {
         "rollup": "^3.5.0"
+    },
+    "dependencies": {
+        "uglify-js": "^3.17.4"
     }
 }

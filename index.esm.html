@@ -6,9 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yu.js, A Simple JavaScript Framework.</title>
-    <!--Yu Import-->
-    <script src="./dist/release.js"></script>
-    <!--Yu End-->
     <style>
         body {
             background-color: rgb(252, 252, 252);
@@ -206,7 +203,7 @@
     <div id="app">
         <h1>{{ text }}</h1>
         <h3>The site is using Version<code>{{ version }}</code></h3>
-        <button @click="textUpdate()" class="button"><span>Change the Text</span></button>
+        <button @click="textUpdate()" @mouseenter="hoverMe()" class="button"><span>Change the Text</span></button>
         <div style="margin-top: 20px;">
             <button class="github-button" @click="goTo('https://github.com/Okysu/yu.js')">Github</button>
             <button class="github-button" @click="goTo('https://github.com/Okysu/yu.js')">Documentation</button>
@@ -225,7 +222,7 @@
                     <li>@focus</li>
                     <li>@blur</li>
                     <li>@input</li>
-                    <li>and more</li>
+                    <li>will support more.</li>
                 </ul>
             </div>
             <div>
@@ -243,6 +240,7 @@
                     <li>#value</li>
                     <li>#show</li>
                     <li>#if</li>
+                    <li>will support more.</li>
                 </ul>
                 <code>#value</code> if can be used to bind the value of the input element, and it will update
                 automatically.
@@ -264,8 +262,9 @@
         </div>
 </body>
 
-<script>
-    Yu.createApp(
+<script type="module">
+    import { Yu } from "./main.esm.js";
+    new Yu(
         {
             el: "#app",
             data: {
@@ -309,6 +308,9 @@
                 },
                 goTo(url) {
                     window.open(url);
+                },
+                hoverMe() {
+                    console.log("Hovered");
                 }
             },
             mounted() {
