@@ -255,7 +255,7 @@
                 <br>
                 <code>{{ play }}</code>
                 <br>
-                <input type="text" #value="play.text" #show="play.display">
+                <input type="text" #value="play.text" #show="play.display" @change="changeText()">
                 <button @click="showOrhide()">{{ play.button }}</button>
                 <br>
                 <button @click="changeText()">Change the Text</button>

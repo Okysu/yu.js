@@ -1,6 +1,6 @@
 /**
  * Yu.js - A simple JavaScript framework
- * @version v0.0.4
+ * @version v0.0.4.1
  * @link    https://yujs.yby.zone
  * @license GNUAGPLv3
  * @author Okysu
@@ -49,7 +49,7 @@ export class Yu {
 		this.#local.oldNode = this.#local.node.cloneNode(true)
 		this.$global = {
 			instance: this,
-			version: '0.0.4',
+			version: '0.0.4.1',
 			app: this.#local.el,
 			dev(isDev = null) {
 				if (isDev !== null)
@@ -398,6 +398,8 @@ export class Yu {
 		if (this.#local.dev)
 			console.info(`[Yu.JS] Updated in ${renderTimeEnd - renderTime} ms.`)
 		window.$yu.renderTime = renderTimeEnd - renderTime
+		if (this.#local.afterUpdate)
+			this.#local.afterUpdate.call(this)
 	}
 
 	/**
@@ -556,12 +558,13 @@ export class Yu {
 						}
 					}
 					if (attr.name === '#value' && (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA' || child.tagName === 'SELECT')) {
+						console.log(child)
 						let valueName = attr.value
 						let keys = valueName.split('.')
 						let value = this.#local.data
 						let flag = true
 						keys.forEach(key => {
-							if (value[key] || value[key] === false || value[key] === 0) {
+							if (value[key] || value[key] === false || value[key] === 0 || value[key] === '') {
 								value = value[key]
 							}
 							else {
@@ -570,35 +573,64 @@ export class Yu {
 							}
 						})
 						if (flag) {
-							if (value !== '') {
-								if (typeof value === 'object') {
-									try {
-										value = JSON.stringify(value)
-									}
-									catch (e) {
-										console.warn(`[Yu.JS] Cannot stringify '${itemStr}' in data.`)
-									}
+							if (typeof value === 'object') {
+								try {
+									value = JSON.stringify(value)
 								}
-								if (child.type === 'checkbox' || child.type === 'radio') {
-									if (valueName === "true")
-										child.checked = true
-									else if (valueName === "false")
-										child.checked = false
-									else if (value)
-										child.checked = true
+								catch (e) {
+									console.warn(`[Yu.JS] Cannot stringify '${itemStr}' in data.`)
+								}
+							}
+							if (child.type === 'checkbox' || child.type === 'radio') {
+								if (valueName === "true")
+									child.checked = true
+								else if (valueName === "false")
+									child.checked = false
+								else if (value)
+									child.checked = true
+								else
+									child.checked = false
+							}
+							child.addEventListener('change', (e) => {
+								console.log(e.target.value)
+								let target = e.currentTarget
+								let value = target.value
+								if (target.type === 'checkbox' || target.type === 'radio') {
+									if (target.checked)
+										value = true
 									else
-										child.checked = false
+										value = false
 								}
-								//child.value = value
-								child.addEventListener('change', (e) => {
+								let data = this.#local.data
+								keys.forEach((key, index) => {
+									console.log(data)
+									if (index === keys.length - 1) {
+										let changeTarget = data[key]
+										if (typeof changeTarget === 'number') {
+											if (typeof value === 'number')
+												data[key] = value
+											else
+												data[key] = Number(value)
+										}
+										else if (typeof changeTarget === 'boolean') {
+											if (typeof value === 'boolean')
+												data[key] = value
+											else
+												data[key] = Boolean(value)
+										} else {
+											data[key] = value
+										}
+									}
+									else {
+										data = data[key]
+									}
+								})
+							})
+							if (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA') {
+								console.log(child)
+								child.addEventListener('input', (e) => {
 									let target = e.currentTarget
 									let value = target.value
-									if (target.type === 'checkbox' || target.type === 'radio') {
-										if (target.checked)
-											value = true
-										else
-											value = false
-									}
 									let data = this.#local.data
 									keys.forEach((key, index) => {
 										if (index === keys.length - 1) {
@@ -623,35 +655,6 @@ export class Yu {
 										}
 									})
 								})
-								if (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA') {
-									child.addEventListener('input', (e) => {
-										let target = e.currentTarget
-										let value = target.value
-										let data = this.#local.data
-										keys.forEach((key, index) => {
-											if (index === keys.length - 1) {
-												let changeTarget = data[key]
-												if (typeof changeTarget === 'number') {
-													if (typeof value === 'number')
-														data[key] = value
-													else
-														data[key] = Number(value)
-												}
-												else if (typeof changeTarget === 'boolean') {
-													if (typeof value === 'boolean')
-														data[key] = value
-													else
-														data[key] = Boolean(value)
-												} else {
-													data[key] = value
-												}
-											}
-											else {
-												data = data[key]
-											}
-										})
-									})
-								}
 							}
 						}
 					}
