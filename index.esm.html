@@ -260,6 +260,7 @@
                 <button @click="resetText()">Reset Text</button>
             </div>
         </div>
+    </div>
 </body>
 
 <script type="module">
@@ -289,7 +290,6 @@
                     } else {
                         this.text = "Hello World!";
                     }
-                    this.updateTime = window.$yu.renderTime;
                 },
                 showOrhide() {
                     if (this.play.display) {
@@ -316,6 +316,9 @@
             mounted() {
                 this.data.updateTime = window.$yu.renderTime;
                 this.data.version = window.$yu.version;
+            },
+            afterUpdate() {
+                this.data.updateTime = window.$yu.renderTime;
             }
         }
     )

@@ -1,6 +1,6 @@
 /**
  * Yu.js - A simple JavaScript framework
- * @version v0.0.4.1
+ * @version v0.0.4.3
  * @link    https://yujs.yby.zone
  * @license GNUAGPLv3
  * @author Okysu
@@ -49,7 +49,7 @@ export class Yu {
 		this.#local.oldNode = this.#local.node.cloneNode(true)
 		this.$global = {
 			instance: this,
-			version: '0.0.4.1',
+			version: '0.0.4.3',
 			app: this.#local.el,
 			dev(isDev = null) {
 				if (isDev !== null)
@@ -204,7 +204,7 @@ export class Yu {
 						}
 					}
 				})
-				if (flag)
+				if (flag) {
 					if (value !== '') {
 						if (typeof value === 'object') {
 							try {
@@ -215,7 +215,10 @@ export class Yu {
 							}
 						}
 						templateStr = templateStr.replace(item, `#value=${itemStr} value="${value}"`)
+					} else {
+						templateStr = templateStr.replace(item, `#value=${itemStr}`)
 					}
+				}
 			})
 		}
 
@@ -291,14 +294,25 @@ export class Yu {
 			set(target, key, value) {
 				let oldVal = target[key]
 				let newVal = value
-				if (oldVal === newVal) {
+				if (typeof newVal === 'object') {
+					newVal = new Proxy(newVal, handler)
+				}
+				if (typeof oldVal === 'object' && typeof newVal === 'object') {
+					let flag = true
+					for (let key in oldVal) {
+						if (oldVal[key] !== newVal[key]) {
+							flag = false
+							break
+						}
+					}
+					if (flag) {
+						return true
+					}
+				} else if (oldVal === newVal) {
 					return true
 				}
 				Reflect.set(target, key, newVal)
 				that.#update()
-				if (typeof newVal === 'object') {
-					newVal = new Proxy(newVal, handler)
-				}
 				if (that.#local.dev)
 					console.info(`[Yu.JS] Data changed: ${key} = ${value}`)
 				if (that.#local.watch && that.#local.watch[`_watch_${key}`]) {
@@ -337,20 +351,32 @@ export class Yu {
 			let oldChildNode = oldChildNodes[i]
 			let newChildNode = newChildNodes[i]
 			if (oldChildNode?.nodeType === 3 && newChildNode?.nodeType === 3) {
+				if (oldChildNode.textContent !== newChildNode.textContent) {
+					oldChildNode.textContent = newChildNode.textContent
+				}
 				if (oldChildNode.nodeValue !== newChildNode.nodeValue) {
 					oldChildNode.nodeValue = newChildNode.nodeValue
 				}
 			}
 			else if (oldChildNode?.nodeType === 1 && newChildNode?.nodeType === 1) {
 				if (oldChildNode.tagName === newChildNode.tagName) {
-					if (oldChildNode.tagName === 'DIV' && oldChildNode.innerHTML !== newChildNode.innerHTML) {
+					if (oldChildNode.innerHTML !== newChildNode.innerHTML) {
 						this.#diff(oldChildNode, newChildNode)
 					}
 					else if (oldChildNode.tagName === 'INPUT' || oldChildNode.tagName === 'TEXTAREA' || oldChildNode.tagName === 'SELECT') {
 						if (oldChildNode.value !== newChildNode.value) {
 							oldChildNode.value = newChildNode.value
 						}
+						if (oldChildNode?.type === 'checkbox' || oldChildNode?.type === 'radio') {
+							if (oldChildNode?.checked !== newChildNode?.checked) {
+								oldChildNode.checked = newChildNode?.checked
+							}
+						}
 					}
+					if (newChildNode.innerHTML === '')
+						oldChildNode.innerHTML = ''
+					else if (oldChildNode.innerHTML === '')
+						oldChildNode.innerHTML = newChildNode.innerHTML
 					let oldAttrs = oldChildNode.attributes
 					let newAttrs = newChildNode.attributes
 					for (let j = 0; j < oldAttrs.length; j++) {
@@ -399,7 +425,7 @@ export class Yu {
 			console.info(`[Yu.JS] Updated in ${renderTimeEnd - renderTime} ms.`)
 		window.$yu.renderTime = renderTimeEnd - renderTime
 		if (this.#local.afterUpdate)
-			this.#local.afterUpdate.call(this)
+			this.#local.afterUpdate()
 	}
 
 	/**
@@ -558,7 +584,6 @@ export class Yu {
 						}
 					}
 					if (attr.name === '#value' && (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA' || child.tagName === 'SELECT')) {
-						console.log(child)
 						let valueName = attr.value
 						let keys = valueName.split('.')
 						let value = this.#local.data
@@ -592,7 +617,6 @@ export class Yu {
 									child.checked = false
 							}
 							child.addEventListener('change', (e) => {
-								console.log(e.target.value)
 								let target = e.currentTarget
 								let value = target.value
 								if (target.type === 'checkbox' || target.type === 'radio') {
@@ -603,7 +627,6 @@ export class Yu {
 								}
 								let data = this.#local.data
 								keys.forEach((key, index) => {
-									console.log(data)
 									if (index === keys.length - 1) {
 										let changeTarget = data[key]
 										if (typeof changeTarget === 'number') {
@@ -627,7 +650,6 @@ export class Yu {
 								})
 							})
 							if (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA') {
-								console.log(child)
 								child.addEventListener('input', (e) => {
 									let target = e.currentTarget
 									let value = target.value

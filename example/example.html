@@ -42,7 +42,7 @@
             {{ data }}
         </div>
         <hr>
-        <form id="test" align="center" @submit="validate()" @reset="reset()">
+        <form id="test" align="center" @submit="validate(e)" @reset="reset()">
             <table>
                 <tr>
                     <td>用户名*:</td>
@@ -101,6 +101,7 @@
                     <td>
                         <input type="submit" class="button" value="提交">
                         <input type="reset" class="button" value="重置">
+                        <button class="button" @click="test()">测试</button>
                     </td>
                 </tr>
             </table>
@@ -110,7 +111,7 @@
 </body>
 
 <script type="module">
-    import { Yu, $, render, h } from "../yu.esm.js";
+    import { Yu, $, render, h } from "../main.esm.js";
     const app = new Yu(
         {
             dev: true,
@@ -193,7 +194,7 @@
                         this.checked.email = false;
                     }
                 },
-                validate() {
+                validate(e) {
                     let checked = this.checked;
                     //执行验证
                     this.nameerror();
@@ -209,13 +210,10 @@
                     }
                 },
                 reset() {
-                    this.data = {
-                        username: "123213",
-                        age: "",
-                        password1: "",
-                        password2: "",
-                        email: "",
-                    }
+                    this.data.username = "233";
+                },
+                test() {
+                    this.data.username = "233";
                 }
             },
             mounted() {
